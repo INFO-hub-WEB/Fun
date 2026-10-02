@@ -1,0 +1,913 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0a0e14">
+<title>us://</title>
+<style>
+  :root{color-scheme:dark; padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);}
+  html,body{margin:0;}
+  img{max-width:100%;}
+  [hidden]{display:none!important;}
+</style>
+</head>
+<body>
+<title>us://</title>
+<style>
+  /* Layout: a phone-style "relationship OS" — a home screen of app tiles that open into
+     full module views, with a master settings panel. Deliberately single-theme (neon dark):
+     the brand is an IT guy's playful dev aesthetic, so the palette is committed. */
+  :root{
+    --bg:#0a0e14; --panel:#0f141c; --panel2:#0c121a; --line:#1c2430;
+    --fg:#c9d4e3; --muted:#5e6b7e; --dim:#8695a8;
+    --term:#4ec9b0; --ok:#6fd08c; --amber:#e5b567; --blue:#4aa3ff;
+    --love:#ff4d8d; --love2:#ff87b5; --violet:#b48cff;
+    color-scheme:dark;
+    --mono:"JetBrains Mono",ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+    --disp:"Space Grotesk",ui-sans-serif,system-ui,sans-serif;
+  }
+  *{box-sizing:border-box;}
+  html,body{min-height:100%;}
+  body{
+    margin:0; color:var(--fg); font-family:var(--mono);
+    background:
+      radial-gradient(1100px 560px at 82% -8%, rgba(255,77,141,.10), transparent 60%),
+      radial-gradient(820px 480px at -8% 108%, rgba(180,140,255,.10), transparent 55%),
+      var(--bg);
+    -webkit-font-smoothing:antialiased;
+    display:flex; align-items:flex-start; justify-content:center;
+    padding:16px; padding-block:max(16px,env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-bottom,0px));
+    overflow-x:hidden;
+  }
+  .phone{
+    width:100%; max-width:720px; background:var(--panel);
+    border:1px solid var(--line); border-radius:16px; position:relative; overflow:hidden;
+    box-shadow:0 30px 80px -24px rgba(0,0,0,.8), 0 0 0 1px rgba(255,255,255,.02) inset;
+  }
+  .bar{
+    display:flex; align-items:center; gap:10px; padding:11px 14px;
+    background:linear-gradient(var(--panel),#0c121a); border-bottom:1px solid var(--line);
+    position:sticky; top:env(safe-area-inset-top,0px); z-index:20;
+  }
+  .dots{display:flex; gap:7px;}
+  .d{width:11px;height:11px;border-radius:50%;}
+  .d.r{background:#ff5f57;}.d.y{background:#febc2e;}.d.g{background:#28c840;}
+  .brand{font-size:12.5px; color:var(--muted); letter-spacing:.3px; display:flex; align-items:center; gap:7px; cursor:default; user-select:none;}
+  .brand b{color:var(--fg); font-weight:600;} .brand .hz{color:var(--love);}
+  .sp{flex:1;}
+  .gear{background:none;border:1px solid var(--line);color:var(--muted);width:30px;height:26px;border-radius:7px;cursor:pointer;font-size:14px;display:grid;place-items:center;transition:.15s;}
+  .gear:hover{color:var(--fg);border-color:var(--muted);}
+
+  .stage{position:relative; min-height:460px;}
+  canvas#fx{position:absolute; inset:0; pointer-events:none; z-index:50;}
+
+  .view{display:none; padding:20px; animation:fade .3s ease both;}
+  .view.active{display:block;}
+  @keyframes fade{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:none;}}
+
+  /* ---- home ---- */
+  .greet{margin:4px 2px 16px;}
+  .greet .hi{font-family:var(--disp); font-weight:700; font-size:clamp(22px,5.5vw,30px); color:#fff; margin:0; line-height:1.1; text-wrap:balance;}
+  .greet .hi .hz{color:var(--love);}
+  .greet .tag{color:var(--muted); font-size:13px; margin-top:6px;}
+  .apps{display:grid; grid-template-columns:repeat(3,1fr); gap:12px;}
+  @media(max-width:460px){.apps{grid-template-columns:repeat(2,1fr);}}
+  .app{
+    background:var(--panel2); border:1px solid var(--line); border-radius:14px; padding:16px 10px;
+    cursor:pointer; text-align:center; display:flex; flex-direction:column; align-items:center; gap:8px;
+    transition:transform .14s, border-color .14s, box-shadow .2s; color:var(--fg);
+  }
+  .app:hover{transform:translateY(-3px); border-color:var(--love2); box-shadow:0 12px 30px -16px rgba(255,77,141,.6);}
+  .app .ic{font-size:26px; line-height:1;}
+  .app .nm{font-size:12.5px; font-weight:600;}
+  .app .tg{font-size:10.5px; color:var(--muted); line-height:1.3;}
+
+  /* ---- module shell ---- */
+  .top{display:flex; align-items:center; gap:12px; margin-bottom:16px;}
+  .back{background:none;border:1px solid var(--line);color:var(--fg);width:34px;height:34px;border-radius:9px;cursor:pointer;font-size:15px;flex:0 0 auto;}
+  .back:hover{border-color:var(--love);color:var(--love);}
+  .vtitle{font-family:var(--disp); font-weight:700; font-size:20px; color:#fff; line-height:1.1;}
+  .vsub{font-size:12px; color:var(--muted); margin-top:2px;}
+  .eyebrow{font-size:11px; letter-spacing:1.5px; text-transform:uppercase; color:var(--muted); margin-bottom:8px;}
+
+  .section{margin-bottom:18px;}
+  .section>h3{font-family:var(--disp); font-size:13px; font-weight:600; color:var(--dim); margin:0 0 9px; letter-spacing:.3px;}
+  .chips{display:flex; flex-wrap:wrap; gap:8px;}
+  .chip{
+    border:1px solid var(--line); background:var(--panel2); color:var(--fg); border-radius:999px;
+    padding:9px 14px; cursor:pointer; font-family:var(--mono); font-size:12.5px; transition:.14s; display:inline-flex; align-items:center; gap:6px;
+  }
+  .chip:hover{border-color:var(--love2); transform:translateY(-1px);}
+  .chip.sel{border-color:var(--love); background:rgba(255,77,141,.14); box-shadow:0 0 0 1px var(--love) inset; color:#fff;}
+
+  /* calendar */
+  .cal{background:var(--panel2); border:1px solid var(--line); border-radius:12px; padding:13px;}
+  .calh{display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;}
+  .calh button{background:none;border:1px solid var(--line);color:var(--fg);width:30px;height:30px;border-radius:7px;cursor:pointer;}
+  .calh button:hover{border-color:var(--love);color:var(--love);}
+  .calt{font-family:var(--disp); font-weight:600;}
+  .dow,.grid{display:grid; grid-template-columns:repeat(7,1fr); gap:5px;}
+  .dow span{text-align:center; font-size:10px; color:var(--muted); padding:3px 0;}
+  .day{aspect-ratio:1; border:1px solid transparent; border-radius:8px; display:grid; place-items:center; font-size:13px; cursor:pointer; color:var(--fg); background:#10171f;}
+  .day:hover{border-color:var(--love2);}
+  .day.off{opacity:.3;cursor:default;background:transparent;} .day.off:hover{border-color:transparent;}
+  .day.past{opacity:.25;cursor:default;} .day.past:hover{border-color:transparent;}
+  .day.sel{background:var(--love); color:#15030c; font-weight:700;}
+
+  .cta{background:var(--love); color:#15030c; border:none; border-radius:10px; padding:12px 20px; font-family:var(--mono); font-weight:700; font-size:13.5px; cursor:pointer; box-shadow:0 8px 24px -10px rgba(255,77,141,.7); transition:transform .12s;}
+  .cta:hover{transform:translateY(-1px);} .cta:disabled{opacity:.35; cursor:not-allowed; box-shadow:none; transform:none;}
+  .cta.ghost{background:#141c26; color:var(--fg); box-shadow:none;}
+  .cta.full{width:100%;}
+  .rowend{display:flex; justify-content:flex-end; gap:10px; margin-top:6px;}
+
+  /* result / card */
+  .card{background:var(--panel2); border:1px solid var(--line); border-radius:14px; padding:18px;}
+  .card.love{border-color:rgba(255,77,141,.4); box-shadow:0 0 0 1px rgba(255,77,141,.12) inset;}
+  .kv{display:flex; justify-content:space-between; gap:12px; padding:9px 0; border-bottom:1px dashed var(--line); font-size:13px;}
+  .kv:last-child{border-bottom:none;}
+  .kv .k{color:var(--muted);} .kv .v{color:#fff; font-weight:600; text-align:right;}
+
+  .big{font-family:var(--disp); font-weight:600; font-size:clamp(20px,5vw,28px); color:#fff; margin:0; line-height:1.15; text-wrap:balance;}
+  .mid{font-size:15px; color:var(--fg); line-height:1.6;}
+  .center{display:flex; flex-direction:column; align-items:center; text-align:center; gap:14px; padding:14px 0;}
+
+  /* coupons */
+  .coupons{display:grid; grid-template-columns:repeat(2,1fr); gap:12px;}
+  @media(max-width:460px){.coupons{grid-template-columns:1fr;}}
+  .coupon{position:relative; border:1px dashed var(--love2); border-radius:12px; background:linear-gradient(135deg, rgba(255,77,141,.08), rgba(180,140,255,.06)); padding:16px 14px; cursor:pointer; transition:.15s; min-height:96px; display:flex; flex-direction:column; justify-content:center; gap:6px;}
+  .coupon:hover{transform:translateY(-2px); border-color:var(--love);}
+  .coupon .lbl{font-size:10px; letter-spacing:1px; text-transform:uppercase; color:var(--love2);}
+  .coupon .txt{font-size:13.5px; color:#fff; font-weight:600; line-height:1.35;}
+  .coupon.used{opacity:.5; filter:grayscale(.4);}
+  .coupon .stamp{position:absolute; right:10px; top:8px; font-size:10px; color:var(--ok); border:1px solid var(--ok); border-radius:5px; padding:1px 5px; transform:rotate(8deg); display:none;}
+  .coupon.used .stamp{display:block;}
+
+  /* open when / envelopes */
+  .env{display:flex; flex-direction:column; gap:10px;}
+  .envitem{border:1px solid var(--line); border-radius:12px; background:var(--panel2); overflow:hidden;}
+  .envhead{display:flex; align-items:center; gap:10px; padding:13px 14px; cursor:pointer;}
+  .envhead:hover{background:#101822;}
+  .envhead .em{font-size:18px;}
+  .envhead .t{flex:1; font-size:13.5px; font-weight:600;}
+  .envhead .chev{color:var(--muted); transition:transform .2s;}
+  .envitem.open .chev{transform:rotate(90deg);}
+  .envbody{display:none; padding:0 14px 15px; font-size:13.5px; line-height:1.7; color:var(--dim); border-top:1px dashed var(--line);}
+  .envitem.open .envbody{display:block; padding-top:13px;}
+  .owmsg{font-size:13.5px; line-height:1.7; color:var(--fg);}
+  .owmeta{font-size:11px; color:var(--muted); margin-top:11px; letter-spacing:.3px;}
+
+  /* checklist */
+  .checks{display:flex; flex-direction:column; gap:8px;}
+  .check{display:flex; align-items:center; gap:11px; padding:12px 14px; border:1px solid var(--line); border-radius:11px; background:var(--panel2); cursor:pointer; transition:.14s;}
+  .check:hover{border-color:var(--love2);}
+  .check .box{width:20px;height:20px;border:2px solid var(--muted);border-radius:6px;flex:0 0 auto;display:grid;place-items:center;font-size:12px;color:#15030c;transition:.14s;}
+  .check.done .box{background:var(--love); border-color:var(--love);}
+  .check .tx{font-size:13.5px;}
+  .check.done .tx{text-decoration:line-through; color:var(--muted);}
+  .prog{height:7px; background:#121922; border:1px solid var(--line); border-radius:99px; overflow:hidden; margin-bottom:14px;}
+  .prog>i{display:block; height:100%; width:0; background:linear-gradient(90deg,var(--love),var(--violet)); transition:width .3s;}
+
+  /* roulette */
+  .slot{font-family:var(--disp); font-weight:700; font-size:clamp(18px,4.6vw,24px); color:#fff; min-height:70px; display:grid; place-items:center; text-align:center; padding:14px; border:1px solid var(--line); border-radius:14px; background:var(--panel2); line-height:1.25;}
+
+  /* quiz */
+  .qopts{display:flex; flex-direction:column; gap:9px; margin-top:4px;}
+  .qopt{text-align:left; border:1px solid var(--line); background:var(--panel2); color:var(--fg); border-radius:11px; padding:13px 14px; cursor:pointer; font-family:var(--mono); font-size:13.5px; transition:.14s;}
+  .qopt:hover{border-color:var(--love2);}
+  .qopt.correct{border-color:var(--ok); background:rgba(111,208,140,.12); color:#fff;}
+  .qopt.wrong{border-color:#ff5f57; background:rgba(255,95,87,.1);}
+  .qprog{font-size:11px; color:var(--muted); margin-bottom:8px; letter-spacing:.5px;}
+
+  /* wyr */
+  .wyr{display:grid; grid-template-columns:1fr auto 1fr; gap:10px; align-items:stretch;}
+  @media(max-width:460px){.wyr{grid-template-columns:1fr; } .wyr .vs{display:none;}}
+  .wyr button{border:1px solid var(--line); background:var(--panel2); color:#fff; border-radius:14px; padding:20px 14px; cursor:pointer; font-family:var(--mono); font-size:14px; line-height:1.4; transition:.14s;}
+  .wyr button:hover{border-color:var(--love); transform:translateY(-2px);}
+  .wyr .vs{display:grid; place-items:center; color:var(--muted); font-family:var(--disp); font-weight:700;}
+
+  /* note */
+  .letter{background:var(--panel2); border:1px solid var(--line); border-radius:14px; padding:20px; font-size:14.5px; line-height:1.85; color:var(--fg); white-space:pre-wrap; min-height:140px;}
+  .letter .sig{display:block; margin-top:16px; font-family:var(--disp); color:var(--love2);}
+
+  /* ---- settings ---- */
+  .settings{position:absolute; inset:0; background:rgba(6,9,14,.96); backdrop-filter:blur(3px); z-index:80; display:none; overflow:auto;}
+  .settings.open{display:block;}
+  .settings .inner{padding:20px; max-width:720px; margin:0 auto;}
+  .settings h2{font-family:var(--disp); color:#fff; font-size:20px; margin:4px 0 2px;}
+  .settings .note{color:var(--muted); font-size:12px; margin:0 0 14px; line-height:1.5;}
+  .acc{border:1px solid var(--line); border-radius:11px; margin-bottom:10px; overflow:hidden; background:var(--panel2);}
+  .acch{display:flex; align-items:center; gap:10px; padding:13px 14px; cursor:pointer; user-select:none;}
+  .acch:hover{background:#101822;}
+  .acch .em{font-size:16px;} .acch .t{flex:1; font-weight:600; font-size:13.5px;}
+  .acch .chev{color:var(--muted); transition:transform .2s;}
+  .acc.open .chev{transform:rotate(90deg);}
+  .accb{display:none; padding:4px 14px 16px; border-top:1px dashed var(--line);}
+  .acc.open .accb{display:block;}
+  .field{margin-top:12px;}
+  .field label{display:block; font-size:10.5px; letter-spacing:1px; text-transform:uppercase; color:var(--muted); margin-bottom:6px;}
+  .field .help{font-size:11px; color:var(--muted); margin-bottom:6px; line-height:1.45;}
+  .field input[type=text], .field textarea{
+    width:100%; background:#0a0f16; border:1px solid var(--line); color:var(--fg);
+    border-radius:9px; padding:10px 12px; font-family:var(--mono); font-size:13px; resize:vertical; line-height:1.5;
+  }
+  .field input:focus, .field textarea:focus{outline:none; border-color:var(--love);}
+  .toggle{display:flex; align-items:center; gap:9px; font-size:12.5px; color:var(--dim); cursor:pointer;}
+  .toggle input{accent-color:var(--love); width:16px; height:16px;}
+  .sbtns{display:flex; gap:10px; flex-wrap:wrap; margin-top:4px; position:sticky; bottom:0; background:linear-gradient(transparent, var(--bg) 40%); padding:14px 0 2px;}
+  .linkout{background:#0a0f16; border:1px solid var(--line); border-radius:9px; padding:11px 12px; font-size:12px; word-break:break-all; color:var(--love2); margin-top:8px; display:none;}
+  .linkout.show{display:block;}
+  .muted-inline{color:var(--muted); font-size:11.5px;}
+  .divider{height:1px; background:var(--line); margin:16px 0;}
+
+  .toast{position:fixed; left:50%; bottom:24px; transform:translateX(-50%) translateY(20px); background:#111822; border:1px solid var(--line); color:var(--fg); padding:11px 16px; border-radius:10px; font-size:12.5px; opacity:0; transition:.25s; z-index:200; pointer-events:none;}
+  .toast.show{opacity:1; transform:translateX(-50%) translateY(0);}
+</style>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Space+Grotesk:wght@500;600;700&display=swap">
+
+<div class="phone">
+  <div class="bar">
+    <div class="dots"><span class="d r"></span><span class="d y"></span><span class="d g"></span></div>
+    <div class="brand" id="brand"><span class="hz">♥</span> <b>us</b>://<span id="brandHost">home</span></div>
+    <div class="sp"></div>
+    <button class="gear" id="gearBtn" title="Edit everything">⚙</button>
+  </div>
+
+  <div class="stage">
+    <canvas id="fx"></canvas>
+    <div id="views"></div>
+  </div>
+
+  <!-- SETTINGS -->
+  <div class="settings" id="settings">
+    <div class="inner" id="settingsInner"></div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+(function(){
+  "use strict";
+  var $=function(s,r){return (r||document).querySelector(s);};
+  var el=function(t,p){var e=document.createElement(t); if(p) for(var k in p){ if(k==="class")e.className=p[k]; else if(k==="html")e.innerHTML=p[k]; else if(k==="text")e.textContent=p[k]; else if(k.slice(0,2)==="on")e.addEventListener(k.slice(2).toLowerCase(),p[k]); else e.setAttribute(k,p[k]); } return e;};
+  var reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  // Only prefill the share box when the page runs at its own URL (self-hosted). Inside the
+  // Claude artifact the page is in a sandbox iframe whose URL is NOT shareable, so leave it blank.
+  function topHref(){ try{ return (window.top===window.self) ? location.href.split('#')[0] : ""; }catch(e){ return ""; } }
+
+  // ---------------- config ----------------
+  var DEFAULTS = {
+    her:"you", me:"me",
+    homeTitle:"Hey {her} ♥",
+    homeTag:"a little app I built for us. tap around.",
+    modules:{
+      date:{on:true, name:"Plan a Date", tag:"pick the day, place & food",
+        places:["Rooftop downtown","That ramen spot","Beach drive","Art museum","Cozy café","Mini golf","Night market","Home + blanket fort"],
+        activities:["Dinner","Movie","Long walk","Live music","Arcade","Stargazing","Cook together","Just talk for hours"],
+        foods:["Sushi","Pizza","Tacos","Ramen","Pasta","Burgers","Dessert first","Street food"],
+        times:["Brunch","Afternoon","6:00 PM","7:30 PM","Sunset","Late night"]},
+      reasons:{on:true, name:"Reasons I ♥ You", tag:"one at a time",
+        list:["you make even a bad day return 200 OK","your laugh is my favorite sound","you steal my hoodies and I secretly love it","you make me want to be less of a mess","you + me has zero downtime","you remember the little things","being quiet with you is my favorite kind of loud"]},
+      coupons:{on:true, name:"Love Coupons", tag:"redeemable, no expiry",
+        list:["One movie night — your pick, no complaints","Breakfast in bed","A 20-min back rub","I do the dishes all week","One guilt-free lazy Sunday","A long drive, your playlist","One 'I was wrong, you were right'","Dessert run at midnight"]},
+      openwhen:{on:true, name:"Open When…", tag:"new words every 5 min",
+        list:[
+          "you miss me :: I'm probably thinking about you right now too. | Close your eyes — I'm there. | Miss you more than my code misses semicolons. | You + me, always — even across the distance.",
+          "you can't sleep :: Breathe slow. I've got you, even from here. | Stop scrolling. Close your eyes. I'm right there with you. | Picture us somewhere warm and quiet. | Tomorrow can wait. Rest, my love.",
+          "you had a rough day :: You don't have to be strong right now. | Tell me everything, or nothing. I'm not going anywhere. | Rough days end. I'm still here when it does. | You're allowed to fall apart — I'll help you put it back together.",
+          "you're happy :: Save some of that smile for me. | Your happy is my favorite thing in the world. | Can't wait to hear all about it. | Keep shining — it looks good on you.",
+          "you're mad at me :: I probably deserve it. I'm sorry. | Us vs the problem, not us vs each other. | I'd rather fix this than be right. | Take your time. I'm not going anywhere."
+        ]},
+      bucket:{on:true, name:"Bucket List", tag:"things to do together",
+        list:["Watch a sunrise without setting an alarm","Take a road trip with no real plan","Cook a recipe from scratch","Learn something dumb together","See the stars away from the city","Slow-dance in the kitchen","Travel somewhere neither of us has been"]},
+      roulette:{on:true, name:"Date Roulette", tag:"spin for an idea",
+        list:["Blindfold taste-test from the fridge","Recreate our first date","Build the ultimate blanket fort + bad movie","Cook each other's comfort food","2-hour phone-free walk","Plan a fake dream vacation on Google Maps","Thrift store $10 outfit challenge"]},
+      compliments:{on:true, name:"Compliment Dispenser", tag:"press for a sweet line",
+        list:["You're the best thing I didn't plan for.","You make ordinary days feel like the good part.","I'd choose you in every version of this.","You're ridiculously easy to be around.","Even your bad mood is cuter than it has any right to be.","I like who I am when I'm with you."]},
+      quiz:{on:true, name:"Us Quiz", tag:"how well do you know me?",
+        list:["What's my go-to comfort food? :: Pizza ; Ramen ; Tacos :: 1","Where would I rather travel? :: Mountains ; Beach ; City :: 0","My ideal night in is… :: Gaming ; A movie with you ; Reading :: 1","What am I secretly bad at? :: Cooking ; Directions ; Waking up early :: 2"]},
+      wyr:{on:true, name:"Would You Rather", tag:"cute dilemmas",
+        list:["Forehead kisses forever :: Hand-holding forever","A cozy night in :: A big night out","Breakfast dates :: Midnight snack dates","Read my mind :: Finish my sentences","Always be a little too warm :: a little too cold — together either way"]},
+      note:{on:true, name:"A Note From Me", tag:"read this one",
+        text:"I'm not great at saying this stuff out loud, so I built a whole app instead (on brand, I know).\n\nBut here it is: you make everything better. The boring parts, the hard parts, the random Tuesday parts. I wasn't looking for you and somehow you're the best thing that happened anyway.\n\nThank you for putting up with my code, my weird hours, and me.", sign:"— {me}"}
+    }
+  };
+
+  function deepMerge(base, over){
+    var out = Array.isArray(base)? base.slice() : Object.assign({}, base);
+    if(!over) return out;
+    for(var k in over){
+      if(over[k] && typeof over[k]==="object" && !Array.isArray(over[k]) && base[k]) out[k]=deepMerge(base[k], over[k]);
+      else out[k]=over[k];
+    }
+    return out;
+  }
+
+  // base64url <-> json
+  function enc(obj){try{var s=JSON.stringify(obj);var b=btoa(unescape(encodeURIComponent(s)));return b.replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');}catch(e){return "";}}
+  function dec(t){try{var b=t.replace(/-/g,'+').replace(/_/g,'/');while(b.length%4)b+='=';var s=decodeURIComponent(escape(atob(b)));return JSON.parse(s);}catch(e){return null;}}
+
+  // load: hash (guest) > localStorage > defaults
+  var guest=false, cfg;
+  var hash=(location.hash||"").replace(/^#/,"");
+  var fromHash = hash && hash.length>8 ? dec(hash) : null;
+  if(fromHash){ cfg=deepMerge(DEFAULTS, fromHash); guest=true; }
+  else{
+    var ls=null; try{ ls=JSON.parse(localStorage.getItem("us.os.cfg")||"null"); }catch(e){}
+    cfg = ls ? deepMerge(DEFAULTS, ls) : deepMerge(DEFAULTS, null);
+  }
+  function tmpl(s){ return (s||"").replace(/\{her\}/g, cfg.her||"you").replace(/\{me\}/g, cfg.me||"me"); }
+  function saveLocal(){ try{ localStorage.setItem("us.os.cfg", JSON.stringify(cfg)); }catch(e){} }
+
+  // per-viewer state (coupons, bucket, quiz) — local only, fine if resets
+  var VS; try{ VS=JSON.parse(localStorage.getItem("us.os.state")||"{}"); }catch(e){ VS={}; }
+  function saveVS(){ try{ localStorage.setItem("us.os.state", JSON.stringify(VS)); }catch(e){} }
+
+  // ---------------- views ----------------
+  var views=$("#views");
+  function clearViews(){ views.innerHTML=""; }
+  function mount(node){ clearViews(); node.classList.add("view","active"); views.appendChild(node); window.scrollTo(0,0); }
+  function setHost(h){ $("#brandHost").textContent=h; }
+
+  function homeView(){
+    var v=el("div");
+    var g=el("div",{class:"greet"});
+    g.appendChild(el("h1",{class:"hi", html: tmpl(cfg.homeTitle).replace(/♥/g,'<span class="hz">♥</span>')}));
+    g.appendChild(el("div",{class:"tag", text: tmpl(cfg.homeTag)}));
+    v.appendChild(g);
+    var grid=el("div",{class:"apps"});
+    var ICON={date:"📅",reasons:"💘",coupons:"🎟️",openwhen:"✉️",bucket:"✅",roulette:"🎲",compliments:"✨",quiz:"🧠",wyr:"🤔",note:"📝"};
+    var ORDER=["date","reasons","coupons","openwhen","bucket","roulette","compliments","quiz","wyr","note"];
+    ORDER.forEach(function(id){
+      var m=cfg.modules[id]; if(!m || !m.on) return;
+      var a=el("div",{class:"app", onclick:function(){ open(id); }});
+      a.appendChild(el("div",{class:"ic", text:ICON[id]||"♥"}));
+      a.appendChild(el("div",{class:"nm", text:m.name}));
+      a.appendChild(el("div",{class:"tg", text:m.tag||""}));
+      grid.appendChild(a);
+    });
+    v.appendChild(grid);
+    setHost("home"); mount(v);
+  }
+
+  function header(v, title, sub){
+    var t=el("div",{class:"top"});
+    t.appendChild(el("button",{class:"back", html:"‹", onclick:homeView}));
+    var box=el("div");
+    box.appendChild(el("div",{class:"vtitle", text:title}));
+    if(sub) box.appendChild(el("div",{class:"vsub", text:sub}));
+    t.appendChild(box); v.appendChild(t);
+  }
+
+  function open(id){
+    if(id==="date") vDate();
+    else if(id==="reasons") vReasons();
+    else if(id==="coupons") vCoupons();
+    else if(id==="openwhen") vOpenWhen();
+    else if(id==="bucket") vBucket();
+    else if(id==="roulette") vRoulette();
+    else if(id==="compliments") vCompliments();
+    else if(id==="quiz") vQuiz();
+    else if(id==="wyr") vWyr();
+    else if(id==="note") vNote();
+  }
+
+  // ---- MONTH helpers ----
+  var MONTHS=["January","February","March","May","June","July","August","September","October","November","December"];
+  MONTHS=["January","February","March","April","May","June","July","August","September","October","November","December"];
+  var DOW=["S","M","T","W","T","F","S"];
+  function fmtDate(dt){ return ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"][dt.getDay()]+", "+MONTHS[dt.getMonth()].slice(0,3)+" "+dt.getDate(); }
+
+  // ---------- Plan a Date ----------
+  function vDate(){
+    setHost("date");
+    var m=cfg.modules.date;
+    var v=el("div"); header(v,m.name,"she picks — you show up");
+    var pick={day:null, place:null, act:null, food:null, time:null};
+
+    // calendar
+    var calWrap=el("div",{class:"section"});
+    calWrap.appendChild(el("h3",{text:"When are you free?"}));
+    var cal=el("div",{class:"cal"}); calWrap.appendChild(cal); v.appendChild(calWrap);
+    var view=new Date(); view.setDate(1);
+    function buildCal(){
+      var y=view.getFullYear(), mo=view.getMonth();
+      var first=new Date(y,mo,1).getDay(), days=new Date(y,mo+1,0).getDate();
+      var today=new Date(); today.setHours(0,0,0,0);
+      cal.innerHTML="";
+      var hd=el("div",{class:"calh"});
+      hd.appendChild(el("button",{html:"‹", onclick:function(){view.setMonth(mo-1);buildCal();}}));
+      hd.appendChild(el("span",{class:"calt", text:MONTHS[mo]+" "+y}));
+      hd.appendChild(el("button",{html:"›", onclick:function(){view.setMonth(mo+1);buildCal();}}));
+      cal.appendChild(hd);
+      var dw=el("div",{class:"dow"}); DOW.forEach(function(d){dw.appendChild(el("span",{text:d}));}); cal.appendChild(dw);
+      var gr=el("div",{class:"grid"});
+      for(var i=0;i<first;i++) gr.appendChild(el("div",{class:"day off"}));
+      for(var d=1;d<=days;d++){
+        (function(d){
+          var dt=new Date(y,mo,d); var c="day"; if(dt<today)c+=" past";
+          if(pick.day && dt.getTime()===pick.day.getTime())c+=" sel";
+          var cell=el("div",{class:c, text:d});
+          if(dt>=today) cell.addEventListener("click",function(){ pick.day=new Date(y,mo,d); buildCal(); check(); });
+          gr.appendChild(cell);
+        })(d);
+      }
+      cal.appendChild(gr);
+    }
+    buildCal();
+
+    function chipSection(title, arr, key){
+      var s=el("div",{class:"section"}); s.appendChild(el("h3",{text:title}));
+      var c=el("div",{class:"chips"});
+      arr.forEach(function(opt){
+        var ch=el("div",{class:"chip", text:opt, onclick:function(){
+          pick[key]=opt;
+          Array.prototype.forEach.call(c.children,function(x){x.classList.remove("sel");});
+          ch.classList.add("sel"); check();
+        }});
+        c.appendChild(ch);
+      });
+      s.appendChild(c); v.appendChild(s);
+    }
+    chipSection("Where do you want to go?", m.places, "place");
+    chipSection("What do you want to do?", m.activities, "act");
+    chipSection("What do you want to eat?", m.foods, "food");
+    chipSection("What time?", m.times, "time");
+
+    var btn=el("button",{class:"cta full", text:"Lock in our date ♥", disabled:"true", onclick:function(){ result(); }});
+    v.appendChild(btn);
+    function check(){ btn.disabled = !(pick.day && (pick.place||pick.act||pick.food)); }
+
+    function result(){
+      var r=el("div"); header(r,"It's a date ♥","be ready, I'm coming to get you");
+      burst(90);
+      var c=el("div",{class:"card love"});
+      c.appendChild(el("h2",{class:"big", html:"Our date with "+ (cfg.her||"you") +" 💾"}));
+      c.appendChild(el("div",{style:"height:10px"}));
+      function kv(k,val){ if(!val)return; var row=el("div",{class:"kv"}); row.appendChild(el("span",{class:"k",text:k})); row.appendChild(el("span",{class:"v",text:val})); c.appendChild(row); }
+      kv("Day", pick.day?fmtDate(pick.day):null);
+      kv("Where", pick.place); kv("Doing", pick.act); kv("Eating", pick.food); kv("Time", pick.time);
+      r.appendChild(c);
+      var row=el("div",{class:"rowend", style:"margin-top:16px"});
+      row.appendChild(el("button",{class:"cta ghost", text:"↺ change it", onclick:vDate}));
+      r.appendChild(row);
+      mount(r);
+    }
+    mount(v);
+  }
+
+  // ---------- Reasons ----------
+  function vReasons(){
+    setHost("reasons");
+    var list=cfg.modules.reasons.list.slice(); var i=Math.floor(Math.random()*list.length);
+    var v=el("div"); header(v, cfg.modules.reasons.name);
+    var c=el("div",{class:"center"});
+    c.appendChild(el("div",{class:"eyebrow", text:"reason #"+(i+1)+" of "+list.length}));
+    var big=el("h2",{class:"big", text:list[i]}); c.appendChild(big);
+    var btn=el("button",{class:"cta", text:"another →", onclick:function(){
+      var j; do{ j=Math.floor(Math.random()*list.length);}while(j===i && list.length>1); i=j;
+      big.textContent=list[i]; c.querySelector(".eyebrow").textContent="reason #"+(i+1)+" of "+list.length; burst(18);
+    }});
+    c.appendChild(btn); v.appendChild(c); mount(v);
+  }
+
+  // ---------- Coupons ----------
+  function vCoupons(){
+    setHost("coupons");
+    var v=el("div"); header(v, cfg.modules.coupons.name, "tap to redeem — heads up, I'll honor these");
+    VS.coupons=VS.coupons||{};
+    var grid=el("div",{class:"coupons"});
+    cfg.modules.coupons.list.forEach(function(txt,idx){
+      var used=!!VS.coupons[idx];
+      var cp=el("div",{class:"coupon"+(used?" used":"")});
+      cp.appendChild(el("div",{class:"lbl", text:"♥ coupon"}));
+      cp.appendChild(el("div",{class:"txt", text:txt}));
+      cp.appendChild(el("div",{class:"stamp", text:"REDEEMED"}));
+      cp.addEventListener("click",function(){
+        VS.coupons[idx]=!VS.coupons[idx]; saveVS();
+        cp.classList.toggle("used", !!VS.coupons[idx]);
+        if(VS.coupons[idx]){ burst(14); toast("Redeemed ♥ (I owe you one)"); }
+      });
+      grid.appendChild(cp);
+    });
+    v.appendChild(grid); mount(v);
+  }
+
+  // ---------- Open When (rotates every 5 min) ----------
+  function vOpenWhen(){
+    setHost("openwhen");
+    var v=el("div"); header(v, cfg.modules.openwhen.name, "open the one you need");
+    VS.openwhen=VS.openwhen||{};
+    var WINDOW=5*60*1000;
+    var wrap=el("div",{class:"env"});
+    cfg.modules.openwhen.list.forEach(function(entry, li){
+      var parts=entry.split("::");
+      var label=(parts[0]||"").trim();
+      var msgs=parts.slice(1).join("::").split("|").map(function(x){return x.trim();}).filter(Boolean);
+      if(!msgs.length) msgs=[""];
+      var item=el("div",{class:"envitem"});
+      var head=el("div",{class:"envhead"});
+      head.appendChild(el("span",{class:"em", text:"✉️"}));
+      head.appendChild(el("span",{class:"t", text:"Open when "+label}));
+      head.appendChild(el("span",{class:"chev", html:"›"}));
+      var body=el("div",{class:"envbody"});
+      var msgP=el("div",{class:"owmsg"});
+      var meta=el("div",{class:"owmeta"});
+      body.appendChild(msgP); body.appendChild(meta);
+
+      function pickCurrent(){
+        var now=Date.now(), st=VS.openwhen[li];
+        if(st && (now - st.ts) < WINDOW){           // still inside the 5-min window: same message
+          return {text: msgs[st.idx % msgs.length], ts: st.ts};
+        }
+        var prev = st ? st.idx : -1;                 // window passed (or first open): advance
+        var idx = msgs.length>1 ? ((prev+1) % msgs.length) : 0;
+        VS.openwhen[li]={idx:idx, ts:now}; saveVS();
+        return {text: msgs[idx], ts: now};
+      }
+      function refresh(){
+        var c=pickCurrent();
+        msgP.textContent=c.text;
+        if(msgs.length>1){
+          var mins=Math.max(1, Math.ceil((WINDOW-(Date.now()-c.ts))/60000));
+          meta.textContent="this one stays ~"+mins+" more min · tap again later for a new message";
+        } else meta.textContent="";
+      }
+      head.addEventListener("click",function(){
+        var opening=!item.classList.contains("open");
+        item.classList.toggle("open");
+        if(opening){ refresh(); burst(10); }
+      });
+      item.appendChild(head); item.appendChild(body); wrap.appendChild(item);
+    });
+    v.appendChild(wrap); mount(v);
+  }
+
+  // ---------- Bucket list ----------
+  function vBucket(){
+    setHost("bucket");
+    var v=el("div"); header(v, cfg.modules.bucket.name, "let's actually do these");
+    VS.bucket=VS.bucket||{};
+    var prog=el("div",{class:"prog"}); var bar=el("i"); prog.appendChild(bar); v.appendChild(prog);
+    var list=cfg.modules.bucket.list;
+    function upd(){ var n=0; list.forEach(function(_,i){ if(VS.bucket[i])n++; }); bar.style.width=(list.length?Math.round(n/list.length*100):0)+"%"; }
+    var wrap=el("div",{class:"checks"});
+    list.forEach(function(txt,idx){
+      var done=!!VS.bucket[idx];
+      var row=el("div",{class:"check"+(done?" done":"")});
+      row.appendChild(el("div",{class:"box", html:done?"✓":""}));
+      row.appendChild(el("div",{class:"tx", text:txt}));
+      row.addEventListener("click",function(){
+        VS.bucket[idx]=!VS.bucket[idx]; saveVS();
+        row.classList.toggle("done",!!VS.bucket[idx]);
+        row.querySelector(".box").innerHTML=VS.bucket[idx]?"✓":""; upd();
+        if(VS.bucket[idx]) burst(10);
+      });
+      wrap.appendChild(row);
+    });
+    v.appendChild(wrap); mount(v); upd();
+  }
+
+  // ---------- Roulette ----------
+  function vRoulette(){
+    setHost("roulette");
+    var list=cfg.modules.roulette.list;
+    var v=el("div"); header(v, cfg.modules.roulette.name, "can't decide? let fate.");
+    var c=el("div",{class:"center"});
+    var slot=el("div",{class:"slot", text:"tap spin ↓"}); c.appendChild(slot);
+    var btn=el("button",{class:"cta", text:"🎲 spin"});
+    var spinning=false;
+    btn.addEventListener("click",function(){
+      if(spinning||!list.length)return; spinning=true; btn.disabled=true;
+      var n=reduce?1:16, i=0;
+      var iv=setInterval(function(){
+        slot.textContent=list[Math.floor(Math.random()*list.length)];
+        if(++i>=n){ clearInterval(iv); spinning=false; btn.disabled=false; burst(40); }
+      }, reduce?10:70);
+    });
+    c.appendChild(btn); v.appendChild(c); mount(v);
+  }
+
+  // ---------- Compliments ----------
+  function vCompliments(){
+    setHost("compliments");
+    var list=cfg.modules.compliments.list;
+    var v=el("div"); header(v, cfg.modules.compliments.name);
+    var c=el("div",{class:"center"});
+    var line=el("h2",{class:"big", text:"press the button ↓"}); c.appendChild(line);
+    var btn=el("button",{class:"cta", text:"✨ give me one", onclick:function(){
+      line.textContent=list[Math.floor(Math.random()*list.length)]; burst(26);
+    }});
+    c.appendChild(btn); v.appendChild(c); mount(v);
+  }
+
+  // ---------- Quiz ----------
+  function vQuiz(){
+    setHost("quiz");
+    var raw=cfg.modules.quiz.list.map(function(s){
+      var p=s.split("::"); var q=(p[0]||"").trim();
+      var opts=(p[1]||"").split(";").map(function(x){return x.trim();}).filter(Boolean);
+      var ans=parseInt((p[2]||"0").trim(),10)||0;
+      return {q:q,opts:opts,ans:ans};
+    }).filter(function(x){return x.q && x.opts.length;});
+    var v=el("div"); header(v, cfg.modules.quiz.name);
+    var i=0, score=0;
+    var body=el("div"); v.appendChild(body);
+    function render(){
+      body.innerHTML="";
+      if(i>=raw.length){
+        var c=el("div",{class:"center"});
+        c.appendChild(el("div",{class:"eyebrow", text:"results"}));
+        c.appendChild(el("h2",{class:"big", text:"You got "+score+"/"+raw.length}));
+        var msg = score===raw.length?"You know me scarily well. Marry me (again).":
+                  score>=raw.length/2?"Not bad! You pass. Barely.":"We clearly need more dates. For research.";
+        c.appendChild(el("div",{class:"mid", text:msg}));
+        c.appendChild(el("button",{class:"cta ghost", text:"↺ retry", onclick:function(){i=0;score=0;render();}}));
+        body.appendChild(c); burst(60); return;
+      }
+      var q=raw[i];
+      body.appendChild(el("div",{class:"qprog", text:"Question "+(i+1)+" / "+raw.length}));
+      body.appendChild(el("h2",{class:"big", text:q.q, style:"font-size:clamp(18px,4.6vw,24px)"}));
+      var opts=el("div",{class:"qopts"});
+      q.opts.forEach(function(o,idx){
+        var b=el("button",{class:"qopt", text:o, onclick:function(){
+          Array.prototype.forEach.call(opts.children,function(x){x.style.pointerEvents="none";});
+          if(idx===q.ans){ b.classList.add("correct"); score++; burst(20); }
+          else{ b.classList.add("wrong"); opts.children[q.ans].classList.add("correct"); }
+          setTimeout(function(){ i++; render(); }, 900);
+        }});
+        opts.appendChild(b);
+      });
+      body.appendChild(opts);
+    }
+    render(); mount(v);
+  }
+
+  // ---------- Would You Rather ----------
+  function vWyr(){
+    setHost("wyr");
+    var list=cfg.modules.wyr.list.slice(); var i=Math.floor(Math.random()*list.length);
+    var v=el("div"); header(v, cfg.modules.wyr.name, "tap your pick");
+    var body=el("div"); v.appendChild(body);
+    var replies=["Good choice. I'd have picked that too.","Interesting… noted for later 😏","Correct answer. There were no wrong ones.","See, this is why I like you."];
+    function render(){
+      body.innerHTML="";
+      var p=list[i].split("::"); var a=(p[0]||"").trim(), b=(p[1]||"").trim();
+      var box=el("div",{class:"wyr"});
+      box.appendChild(el("button",{text:a, onclick:pick}));
+      box.appendChild(el("div",{class:"vs", text:"or"}));
+      box.appendChild(el("button",{text:b, onclick:pick}));
+      body.appendChild(box);
+      function pick(){
+        burst(18);
+        body.innerHTML="";
+        var c=el("div",{class:"center"});
+        c.appendChild(el("div",{class:"mid", text:replies[Math.floor(Math.random()*replies.length)]}));
+        c.appendChild(el("button",{class:"cta", text:"next →", onclick:function(){ var j; do{j=Math.floor(Math.random()*list.length);}while(j===i&&list.length>1); i=j; render(); }}));
+        body.appendChild(c);
+      }
+    }
+    render(); mount(v);
+  }
+
+  // ---------- Note ----------
+  function vNote(){
+    setHost("note");
+    var m=cfg.modules.note;
+    var v=el("div"); header(v, m.name);
+    var letter=el("div",{class:"letter"});
+    var txt=tmpl(m.text||"");
+    letter.appendChild(document.createTextNode(txt));
+    var sig=el("span",{class:"sig", text: tmpl(m.sign||"— {me}")}); letter.appendChild(sig);
+    v.appendChild(letter);
+    setTimeout(function(){ burst(24); }, 300);
+    mount(v);
+  }
+
+  // ---------------- confetti ----------------
+  var cvs=$("#fx"), ctx=cvs.getContext("2d"), parts=[], raf=null;
+  function sz(){ var r=cvs.getBoundingClientRect(); cvs.width=r.width; cvs.height=r.height; }
+  window.addEventListener("resize", sz); sz();
+  function burst(n){
+    if(reduce) return; sz();
+    var cx=cvs.width/2;
+    for(var i=0;i<n;i++) parts.push({x:cx+(Math.random()-.5)*120,y:cvs.height*0.3,vx:(Math.random()-.5)*7,vy:-4-Math.random()*7,g:.22+Math.random()*.12,life:1,s:7+Math.random()*9,c:Math.random()<.5?"#ff4d8d":(Math.random()<.5?"#b48cff":"#ff87b5"),rot:Math.random()*6});
+    if(!raf) raf=requestAnimationFrame(tick);
+  }
+  function heart(x,y,s,rot,color,alpha){ctx.save();ctx.translate(x,y);ctx.rotate(rot);ctx.scale(s/16,s/16);ctx.globalAlpha=alpha;ctx.fillStyle=color;ctx.beginPath();ctx.moveTo(0,4);ctx.bezierCurveTo(0,-2,-8,-2,-8,3);ctx.bezierCurveTo(-8,8,-2,11,0,14);ctx.bezierCurveTo(2,11,8,8,8,3);ctx.bezierCurveTo(8,-2,0,-2,0,4);ctx.fill();ctx.restore();}
+  function tick(){ctx.clearRect(0,0,cvs.width,cvs.height);for(var i=parts.length-1;i>=0;i--){var p=parts[i];p.vy+=p.g;p.x+=p.vx;p.y+=p.vy;p.rot+=.05;p.life-=.009;if(p.life<=0||p.y>cvs.height+30){parts.splice(i,1);continue;}heart(p.x,p.y,p.s,p.rot,p.c,Math.max(0,Math.min(1,p.life)));}if(parts.length)raf=requestAnimationFrame(tick);else{raf=null;ctx.clearRect(0,0,cvs.width,cvs.height);}}
+
+  var toastT;
+  function toast(msg){ var t=$("#toast"); t.textContent=msg; t.classList.add("show"); clearTimeout(toastT); toastT=setTimeout(function(){t.classList.remove("show");},1800); }
+
+  // ---------------- settings ----------------
+  function textLines(arr){ return (arr||[]).join("\n"); }
+  function parseLines(s){ return (s||"").split("\n").map(function(x){return x.trim();}).filter(Boolean); }
+
+  function buildSettings(){
+    var box=$("#settingsInner"); box.innerHTML="";
+    box.appendChild(el("h2",{text:"⚙ Master editor"}));
+    box.appendChild(el("p",{class:"note", html:"Edit anything below. <b>Save</b> keeps it on this device. To send <b>your</b> version to her phone, use <b>Make her link</b> at the bottom — it packs every setting into one link."}));
+
+    function acc(em, title, build, openFirst){
+      var a=el("div",{class:"acc"+(openFirst?" open":"")});
+      var h=el("div",{class:"acch"});
+      h.appendChild(el("span",{class:"em",text:em}));
+      h.appendChild(el("span",{class:"t",text:title}));
+      h.appendChild(el("span",{class:"chev",html:"›"}));
+      var b=el("div",{class:"accb"});
+      h.addEventListener("click",function(){ a.classList.toggle("open"); });
+      a.appendChild(h); a.appendChild(b); box.appendChild(a); build(b); return a;
+    }
+    function field(parent,label,help,value,multiline,ref){
+      var f=el("div",{class:"field"});
+      f.appendChild(el("label",{text:label}));
+      if(help) f.appendChild(el("div",{class:"help",text:help}));
+      var inp = multiline? el("textarea",{rows:multiline}) : el("input",{type:"text"});
+      inp.value=value||""; f.appendChild(inp); parent.appendChild(f); ref.el=inp; return inp;
+    }
+    function moduleToggle(parent, modKey){
+      var f=el("div",{class:"field"});
+      var lab=el("label",{class:"toggle"});
+      var cb=el("input",{type:"checkbox"}); cb.checked=!!cfg.modules[modKey].on;
+      lab.appendChild(cb); lab.appendChild(document.createTextNode(" Show this on the home screen"));
+      f.appendChild(lab); parent.appendChild(f); return cb;
+    }
+
+    var R={}; // refs
+
+    acc("🏠","Basics", function(b){
+      R.her=field(b,"Her name","",cfg.her==="you"?"":cfg.her,0,{});
+      R.me=field(b,"Your name","",cfg.me==="me"?"":cfg.me,0,{});
+      R.homeTitle=field(b,"Home greeting","Use {her} for her name.",cfg.homeTitle,0,{});
+      R.homeTag=field(b,"Home subtitle","",cfg.homeTag,0,{});
+    }, true);
+
+    acc("📅","Plan a Date", function(b){
+      R.date_on=moduleToggle(b,"date");
+      R.date_name=field(b,"Tile name","",cfg.modules.date.name,0,{});
+      R.date_places=field(b,"Places (one per line)","",textLines(cfg.modules.date.places),5,{});
+      R.date_acts=field(b,"Activities (one per line)","",textLines(cfg.modules.date.activities),5,{});
+      R.date_foods=field(b,"Foods (one per line)","",textLines(cfg.modules.date.foods),5,{});
+      R.date_times=field(b,"Times (one per line)","",textLines(cfg.modules.date.times),4,{});
+    });
+
+    acc("💘","Reasons I ♥ You", function(b){
+      R.reasons_on=moduleToggle(b,"reasons");
+      R.reasons_name=field(b,"Tile name","",cfg.modules.reasons.name,0,{});
+      R.reasons_list=field(b,"Reasons (one per line)","",textLines(cfg.modules.reasons.list),7,{});
+    });
+
+    acc("🎟️","Love Coupons", function(b){
+      R.coupons_on=moduleToggle(b,"coupons");
+      R.coupons_name=field(b,"Tile name","",cfg.modules.coupons.name,0,{});
+      R.coupons_list=field(b,"Coupons (one per line)","",textLines(cfg.modules.coupons.list),7,{});
+    });
+
+    acc("✉️","Open When…", function(b){
+      R.openwhen_on=moduleToggle(b,"openwhen");
+      R.openwhen_name=field(b,"Tile name","",cfg.modules.openwhen.name,0,{});
+      R.openwhen_list=field(b,"One per line:  label :: message 1 | message 2 | message 3","Separate several messages for the same 'open when' with a | (pipe). She gets one at a time; it rotates to a new one every 5 minutes.",textLines(cfg.modules.openwhen.list),9,{});
+    });
+
+    acc("✅","Bucket List", function(b){
+      R.bucket_on=moduleToggle(b,"bucket");
+      R.bucket_name=field(b,"Tile name","",cfg.modules.bucket.name,0,{});
+      R.bucket_list=field(b,"Items (one per line)","",textLines(cfg.modules.bucket.list),7,{});
+    });
+
+    acc("🎲","Date Roulette", function(b){
+      R.roulette_on=moduleToggle(b,"roulette");
+      R.roulette_name=field(b,"Tile name","",cfg.modules.roulette.name,0,{});
+      R.roulette_list=field(b,"Ideas (one per line)","",textLines(cfg.modules.roulette.list),7,{});
+    });
+
+    acc("✨","Compliment Dispenser", function(b){
+      R.compliments_on=moduleToggle(b,"compliments");
+      R.compliments_name=field(b,"Tile name","",cfg.modules.compliments.name,0,{});
+      R.compliments_list=field(b,"Lines (one per line)","",textLines(cfg.modules.compliments.list),7,{});
+    });
+
+    acc("🧠","Us Quiz", function(b){
+      R.quiz_on=moduleToggle(b,"quiz");
+      R.quiz_name=field(b,"Tile name","",cfg.modules.quiz.name,0,{});
+      R.quiz_list=field(b,"One question per line, format:  Question :: opt1 ; opt2 ; opt3 :: correctIndex","correctIndex starts at 0 (first option = 0).",textLines(cfg.modules.quiz.list),8,{});
+    });
+
+    acc("🤔","Would You Rather", function(b){
+      R.wyr_on=moduleToggle(b,"wyr");
+      R.wyr_name=field(b,"Tile name","",cfg.modules.wyr.name,0,{});
+      R.wyr_list=field(b,"One per line, format:  option A :: option B","",textLines(cfg.modules.wyr.list),7,{});
+    });
+
+    acc("📝","A Note From Me", function(b){
+      R.note_on=moduleToggle(b,"note");
+      R.note_name=field(b,"Tile name","",cfg.modules.note.name,0,{});
+      R.note_text=field(b,"Your letter","Use {her} and {me}. Line breaks are kept.",cfg.modules.note.text,8,{});
+      R.note_sign=field(b,"Sign-off","",cfg.modules.note.sign,0,{});
+    });
+
+    box.appendChild(el("div",{class:"divider"}));
+
+    // share
+    acc("🔗","Make her link", function(b){
+      var ORDER=["date","reasons","coupons","openwhen","bucket","roulette","compliments","quiz","wyr","note"];
+      b.appendChild(el("p",{class:"note", html:"<b>Step 1 — pick what goes in THIS link.</b> Only the checked apps will show up for her."}));
+      var selRow=el("div",{style:"display:flex;gap:8px;margin:2px 0 8px;"});
+      var incRefs={};
+      selRow.appendChild(el("button",{class:"cta ghost", style:"padding:7px 12px;font-size:12px;", text:"Check all", onclick:function(){ORDER.forEach(function(id){incRefs[id].checked=true;});}}));
+      selRow.appendChild(el("button",{class:"cta ghost", style:"padding:7px 12px;font-size:12px;", text:"Clear all", onclick:function(){ORDER.forEach(function(id){incRefs[id].checked=false;});}}));
+      b.appendChild(selRow);
+      var incWrap=el("div",{style:"display:grid;grid-template-columns:1fr 1fr;gap:4px 14px;margin-bottom:6px;"});
+      ORDER.forEach(function(id){
+        var lab=el("label",{class:"toggle", style:"margin:5px 0;"});
+        var cb=el("input",{type:"checkbox"}); cb.checked=!!cfg.modules[id].on; incRefs[id]=cb;
+        lab.appendChild(cb); lab.appendChild(document.createTextNode(" "+cfg.modules[id].name));
+        incWrap.appendChild(lab);
+      });
+      b.appendChild(incWrap);
+
+      b.appendChild(el("p",{class:"note", html:"<b>Step 2.</b> Save your edits. Then paste the <b>public web address where this app lives</b> below (your free host link, e.g. Netlify / GitHub Pages / Replit) and tap <b>Build link</b>. Send her the result."}));
+      var pasteInp=field(b,"Paste the app's public link","If this box is empty, you're inside Claude's preview — paste your hosted link here.",topHref(),0,{});
+      var out=el("div",{class:"linkout"});
+      var buildBtn=el("button",{class:"cta", text:"Build link", onclick:function(){
+        collect(R); // capture latest edits
+        var clone=JSON.parse(JSON.stringify(cfg));
+        ORDER.forEach(function(id){ clone.modules[id].on = !!incRefs[id].checked; }); // per-link selection
+        var token=enc(stripDefaults(clone));
+        var base=(pasteInp.value||"").trim().split('#')[0];
+        var full = base ? base+"#"+token : "#"+token;
+        out.textContent=full; out.classList.add("show");
+        copy(full);
+      }});
+      var bf=el("div",{class:"field"}); bf.appendChild(buildBtn); b.appendChild(bf);
+      b.appendChild(out);
+      b.appendChild(el("p",{class:"muted-inline", style:"margin-top:10px", text:"No server — every setting lives inside the link. If it gets very long, uncheck a few apps or trim some list items."}));
+    });
+
+    // buttons
+    var sb=el("div",{class:"sbtns"});
+    sb.appendChild(el("button",{class:"cta", text:"Save", onclick:function(){ collect(R); saveLocal(); toast("Saved on this device ♥"); $("#settings").classList.remove("open"); homeView(); }}));
+    sb.appendChild(el("button",{class:"cta ghost", text:"Preview", onclick:function(){ collect(R); $("#settings").classList.remove("open"); homeView(); }}));
+    sb.appendChild(el("button",{class:"cta ghost", text:"Close", onclick:function(){ $("#settings").classList.remove("open"); }}));
+    sb.appendChild(el("button",{class:"cta ghost", text:"Reset to defaults", onclick:function(){ if(confirmReset()) { cfg=deepMerge(DEFAULTS,null); saveLocal(); buildSettings(); toast("Reset done"); } }}));
+    box.appendChild(sb);
+
+    function collect(R){
+      cfg.her=(R.her.value.trim())||"you";
+      cfg.me=(R.me.value.trim())||"me";
+      cfg.homeTitle=R.homeTitle.value||DEFAULTS.homeTitle;
+      cfg.homeTag=R.homeTag.value||DEFAULTS.homeTag;
+      var M=cfg.modules;
+      M.date.on=R.date_on.checked; M.date.name=R.date_name.value||DEFAULTS.modules.date.name;
+      M.date.places=parseLines(R.date_places.value); M.date.activities=parseLines(R.date_acts.value);
+      M.date.foods=parseLines(R.date_foods.value); M.date.times=parseLines(R.date_times.value);
+      M.reasons.on=R.reasons_on.checked; M.reasons.name=R.reasons_name.value||DEFAULTS.modules.reasons.name; M.reasons.list=parseLines(R.reasons_list.value);
+      M.coupons.on=R.coupons_on.checked; M.coupons.name=R.coupons_name.value||DEFAULTS.modules.coupons.name; M.coupons.list=parseLines(R.coupons_list.value);
+      M.openwhen.on=R.openwhen_on.checked; M.openwhen.name=R.openwhen_name.value||DEFAULTS.modules.openwhen.name; M.openwhen.list=parseLines(R.openwhen_list.value);
+      M.bucket.on=R.bucket_on.checked; M.bucket.name=R.bucket_name.value||DEFAULTS.modules.bucket.name; M.bucket.list=parseLines(R.bucket_list.value);
+      M.roulette.on=R.roulette_on.checked; M.roulette.name=R.roulette_name.value||DEFAULTS.modules.roulette.name; M.roulette.list=parseLines(R.roulette_list.value);
+      M.compliments.on=R.compliments_on.checked; M.compliments.name=R.compliments_name.value||DEFAULTS.modules.compliments.name; M.compliments.list=parseLines(R.compliments_list.value);
+      M.quiz.on=R.quiz_on.checked; M.quiz.name=R.quiz_name.value||DEFAULTS.modules.quiz.name; M.quiz.list=parseLines(R.quiz_list.value);
+      M.wyr.on=R.wyr_on.checked; M.wyr.name=R.wyr_name.value||DEFAULTS.modules.wyr.name; M.wyr.list=parseLines(R.wyr_list.value);
+      M.note.on=R.note_on.checked; M.note.name=R.note_name.value||DEFAULTS.modules.note.name; M.note.text=R.note_text.value; M.note.sign=R.note_sign.value;
+    }
+  }
+  function confirmReset(){ /* confirm() is inert in artifacts */ return true; }
+
+  // strip values equal to defaults to keep the link short
+  function stripDefaults(c){
+    function diff(a,d){
+      if(Array.isArray(a)) return JSON.stringify(a)===JSON.stringify(d)?undefined:a;
+      if(a && typeof a==="object"){ var o={},has=false; for(var k in a){ var r=diff(a[k], d?d[k]:undefined); if(r!==undefined){o[k]=r;has=true;} } return has?o:undefined; }
+      return a===d?undefined:a;
+    }
+    return diff(c, DEFAULTS)||{};
+  }
+
+  function copy(text){
+    try{
+      if(navigator.clipboard && navigator.clipboard.writeText){
+        navigator.clipboard.writeText(text).then(function(){toast("Link copied ♥");},function(){selectOut(text);});
+      } else selectOut(text);
+    }catch(e){ selectOut(text); }
+  }
+  function selectOut(text){ toast("Press & hold the link to copy"); }
+
+  // ---------------- wiring ----------------
+  function openSettings(){ buildSettings(); $("#settings").classList.add("open"); }
+  $("#gearBtn").addEventListener("click", openSettings);
+
+  // guest mode: hide gear, allow secret access via 5 taps on the logo
+  if(guest){
+    $("#gearBtn").style.display="none";
+    var taps=0, tapT;
+    $("#brand").addEventListener("click",function(){ taps++; clearTimeout(tapT); tapT=setTimeout(function(){taps=0;},1200); if(taps>=5){ taps=0; openSettings(); } });
+  }
+
+  homeView();
+})();
+</script>
+
+</body>
+</html>
